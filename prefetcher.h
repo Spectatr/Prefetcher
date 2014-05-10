@@ -14,11 +14,12 @@
 
 class Prefetcher {
   private:
+	short _i;
 	bool _ready;
-	Request _nextReq;
+	Request _nextReq[10];
 
   public:
-	// Prefetcher();
+	Prefetcher() : _i(0), _ready(false) {}
 
 	// should return true if a request is ready for this cycle
 	bool hasRequest(u_int32_t cycle);
