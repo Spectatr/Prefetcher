@@ -234,8 +234,7 @@ int main(/*int argc, char* argv[]*/) {
 	fprintf(fp,"%-35s %10.4f\n","Memory bandwidth utilization",memBW);
 
 	//fclose(fp);
-	system("pause");
-
+	
 	return 0;
 }
 
