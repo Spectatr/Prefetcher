@@ -16,10 +16,11 @@ class Prefetcher {
   private:
 	short _i;
 	bool _ready;
-	Request _nextReq[10];
+	Request _nextReq[100];
+	const int _N;
 
   public:
-	Prefetcher() : _i(0), _ready(false) {}
+	Prefetcher() : _i(0), _ready(false), _N(10) {}
 
 	// should return true if a request is ready for this cycle
 	bool hasRequest(u_int32_t cycle);
