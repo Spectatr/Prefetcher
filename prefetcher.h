@@ -9,7 +9,7 @@
 #ifndef PREFETCHER_H
 #define PREFETCHER_H
 
-#define N 5
+#define N 12
 
 #include <sys/types.h>
 #include "mem-sim.h"
