@@ -233,7 +233,8 @@ int main(/*int argc, char* argv[]*/) {
 	fprintf(fp,"%-35s %10.4f\n","D-Cache-to-L2 bandwidth utilization",L2BW);
 	fprintf(fp,"%-35s %10.4f\n","Memory bandwidth utilization",memBW);
 
-	fclose(fp);
+	//fclose(fp);
+	system("pause");
 
 	return 0;
 }
