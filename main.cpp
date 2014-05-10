@@ -16,11 +16,11 @@
 #include <string.h>
 
 
-int main(int argc, char* argv[]) {
-	char* filename = (char*)malloc(sizeof(char)* 10);
-	filename = "g++.trace";
+int main(/*int argc, char* argv[]*/) {
+	int argc = 2;
+	char *argv[2] = {"", "g++.trace"};
 
-	if(argc !=1) {
+	if (argc != 2) {
 		printf("Usage: %s [trace file]\n",argv[0]);
 		return 1;
 	}
@@ -65,8 +65,7 @@ int main(int argc, char* argv[]) {
 	// L2 cache is writeback with write-alloc, LRU replacement
 	Cache L2Cache(numSetsL2,assocL2,lineSizeL2,false,true,false);
 
-	
-	CPU cpu((char*)filename);
+	CPU cpu(argv[1]);
 
 	Prefetcher pf;
 
@@ -218,12 +217,12 @@ int main(int argc, char* argv[]) {
 
 
 	// create output file name based on trace file name
-	char* outfile = (char *)malloc(sizeof(char)*(strlen(filename)+5));
-	strcpy(outfile,filename);
+	char* outfile = (char *)malloc(sizeof(char)*(strlen(argv[1])+5));
+	strcpy(outfile,argv[1]);
 	strcat(outfile,".out");
 
-	//fp = fopen(outfile,"w"); // open outfile for writing
-	fp = stdout;
+	fp = stdout; //fopen(outfile,"w"); // open outfile for writing
+
 	free(outfile);
 
 	fprintf(fp,"%u\n",curr_cycle);

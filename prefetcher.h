@@ -18,7 +18,7 @@ class Prefetcher {
 	Request _nextReq;
 
   public:
-	  Prefetcher(){};
+	// Prefetcher();
 
 	// should return true if a request is ready for this cycle
 	bool hasRequest(u_int32_t cycle);
