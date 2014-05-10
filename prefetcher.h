@@ -11,16 +11,16 @@
 
 #include <sys/types.h>
 #include "mem-sim.h"
+#define N 13
 
 class Prefetcher {
   private:
 	short _i;
 	bool _ready;
-	Request _nextReq[100];
-	const int _N;
+	Request _nextReq[N];
 
   public:
-	Prefetcher() : _i(0), _ready(false), _N(10) {}
+	Prefetcher() : _i(0), _ready(false) {}
 
 	// should return true if a request is ready for this cycle
 	bool hasRequest(u_int32_t cycle);
