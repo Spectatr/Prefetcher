@@ -2,7 +2,7 @@
 #include "mem-sim.h"
 
 bool Prefetcher::hasRequest(u_int32_t cycle) {
-	return false;
+	return true;
 }
 
 Request Prefetcher::getRequest(u_int32_t cycle) {

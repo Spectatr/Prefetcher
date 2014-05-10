@@ -225,13 +225,13 @@ int main(/*int argc, char* argv[]*/) {
 
 	free(outfile);
 
-	fprintf(fp,"%u\n",curr_cycle);
-	fprintf(fp,"%.4f\n",cpu.getHitRateL1());
-	fprintf(fp,"%.4f\n",cpu.getHitRateL2());
-	fprintf(fp,"%.4f\n",cpu.getAMAT());
-	fprintf(fp,"%.4f\n",avgMemQ);
-	fprintf(fp,"%.4f\n",L2BW);
-	fprintf(fp,"%.4f\n",memBW);
+	fprintf(fp,"Total Run Time %u\n",curr_cycle);
+	fprintf(fp,"D-Cache Total Hit Rate %.4f\n",cpu.getHitRateL1());
+	fprintf(fp,"L2 Total Hit Rate %.4f\n",cpu.getHitRateL2());
+	fprintf(fp,"Average Memory Access Time %.4f\n",cpu.getAMAT());
+	fprintf(fp,"Average Memory Queue Length %.4f\n",avgMemQ);
+	fprintf(fp,"D-Cache-to-L2 bandwidth utilization %.4f\n",L2BW);
+	fprintf(fp,"Memory bandwidth utilization %.4f\n",memBW);
 
 	fclose(fp);
 
