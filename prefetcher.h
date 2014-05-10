@@ -11,7 +11,7 @@
 
 #include <sys/types.h>
 #include "mem-sim.h"
-#define N 13
+#define N 15
 
 class Prefetcher {
   private:
