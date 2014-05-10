@@ -4,14 +4,15 @@
 using namespace std;
 
 bool Prefetcher::hasRequest(u_int32_t cycle) {
-	if (_i >= N) _ready = false;
-	return _ready;
+	return _reqsQueue.size();
 }
 
 Request Prefetcher::getRequest(u_int32_t cycle) {
 	//cout << "Index is: " << _i << " and cycle is " << cycle << endl;
-	Request req = _nextReq[_i++];
-	_ready = (_i < N);
+	Request req = _reqsQueue.front();
+	_reqsQueue.pop_front();
+	_reqsMap[req] = false;
+
 	return req;
 }
 
@@ -20,12 +21,17 @@ void Prefetcher::completeRequest(u_int32_t cycle) {
 }
 
 void Prefetcher::cpuRequest(Request req) {
-	if (!_ready && !req.HitL1) {
+	if (!req.HitL1 || !req.HitL2) {
 		for (int i=0; i<N; ++i)
 		{
-			_nextReq[i].addr = req.addr + 16 * (i+1);
+			Request tmp_req;
+			tmp_req.addr = req.addr + 16 * (i+1);
+
+			if (_reqsMap[tmp_req])
+				break;
+		
+			_reqsQueue.push_back(tmp_req);
+			_reqsMap[tmp_req] = true;
 		}
-		_i = 0;
-		_ready = true;
 	}
 }

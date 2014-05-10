@@ -9,18 +9,31 @@
 #ifndef PREFETCHER_H
 #define PREFETCHER_H
 
+#define N 5
+
 #include <sys/types.h>
 #include "mem-sim.h"
-#define N 15
+#include <list>
+#include <map>
+using namespace std;
+
+class my_less
+{
+public:
+	bool operator()(Request lhd, Request rhs)
+	{
+		return lhd.addr < rhs.addr;
+	}
+};
 
 class Prefetcher {
   private:
-	short _i;
-	bool _ready;
-	Request _nextReq[N];
+	map<Request, bool, my_less> _reqsMap;
+	list<Request> _reqsQueue;
+
 
   public:
-	Prefetcher() : _i(0), _ready(false) {}
+	Prefetcher() {}
 
 	// should return true if a request is ready for this cycle
 	bool hasRequest(u_int32_t cycle);
