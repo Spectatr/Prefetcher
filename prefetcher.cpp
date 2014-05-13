@@ -22,6 +22,11 @@ void Prefetcher::completeRequest(u_int32_t cycle) {
 
 void Prefetcher::cpuRequest(Request req) {
 	if (!req.HitL1 || !req.HitL2) {
+		if (_reqsQueue.size() > 25)
+		{
+			_reqsQueue.clear();
+			_reqsMap.clear();
+		}
 		for (int i=0; i<N; ++i)
 		{
 			Request tmp_req;
