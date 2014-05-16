@@ -24,73 +24,66 @@ using namespace std;
 
 class HistoryBuffer {
 private:
-	typedef tuple<u_int32_t, long> MyHistory;
+	typedef long Index;
+	typedef u_int32_t PC;
+	typedef long PC_Pointer;
+	typedef u_int32_t Addr;
+	typedef long Addr_Pointer;
+	typedef long Stride;
+	enum State {Init, Steady, Transient, NoPred};
 
-	map<u_int32_t, long> _indexTable;
-	map<u_int32_t, long> _pcTable;
+	typedef tuple<Addr, Addr_Pointer> MyHistory;
+
+	map<PC, Index> _indexTable;
+	map<Addr, Index> _pcTable;
 
 	vector<MyHistory> _historyBuffer;
 
 public:
 	// http://www.cs.iit.edu/~chen/docs/chen_sc07-dahc.pdf
 	// adress = real address for global, pc for local (I think)
-	void AddMiss(u_int32_t address, u_int32_t pc, vector<u_int32_t>& prefetch)
+	void AddMiss(Addr address, PC pc, vector<u_int32_t>& prefetch)
 	{
-		//cout << "Address is " << address << endl;;
-		long ptr = 0;
+		Index idx = 0;
 
-		// Have never seen this address before
 		if (_indexTable.find(address) == _indexTable.end())
 		{
-			if (true /* why the hybrid takes longer?! */ || _pcTable.find(pc) == _pcTable.end())
-			{
-				MyHistory newHistory(std::make_tuple(address, 0));
-				_historyBuffer.push_back(newHistory);
+			MyHistory myHist(address, Addr_Pointer(LONG_MAX));
+			_historyBuffer.push_back(myHist);
 
-				_indexTable[address] = _historyBuffer.size() - 1;
-				_pcTable[address] = _historyBuffer.size() - 1;
+			idx = _historyBuffer.size() - 1;
+			_indexTable[address] = idx;
 
-				for (int i=1; i<12; ++i)
-				{
-					prefetch.push_back(address + 16*i);
-					MyHistory newHistory(std::make_tuple(address + 16*i, 0));
-					_historyBuffer.push_back(newHistory);
-				}
-				return;
-			}
-			ptr = _pcTable[pc];
-		}
-		else 
-		{
-			ptr = _indexTable[address];
-		}
-
-		//system("pause");
-
-		// Else - there must be below a newer (other) address
-		// otherwise it could not be a miss!!!
-		long firstPtr = ptr;
-
-		if (ptr == _historyBuffer.size() - 1)
-		{
-			// Temporary
-			//goto MyLabel;
-
+			for (int i = 1; i < 12; ++i)
+				prefetch.push_back(address + 16*i);
+		
 			return;
-		}
+		}		 
+		
+		long lastIdx = idx = _indexTable[address];
+		MyHistory& hist = _historyBuffer[idx];
 
-		while (ptr)
+		idx = get<1>(hist);
+		int count = 0;
+
+		while (idx != LONG_MAX && count++ < 5)
 		{
-			prefetch.push_back(std::get<0>(_historyBuffer[ptr + 1]));
-			ptr = std::get<1>(_historyBuffer[ptr]);
+			MyHistory& hist = _historyBuffer[idx];
+	
+			for (int i = 1; idx + i < lastIdx && i < 4; ++i)
+			{
+				prefetch.push_back(get<0>(_historyBuffer[idx+i]));
+			}
+			
+			idx = get<1>(hist);
 		}
 
-		// Just add the new memory
-		MyHistory newHistory(std::make_tuple(address, firstPtr));
-		_historyBuffer.push_back(newHistory);
-		_indexTable[address] = _historyBuffer.size() - 1;
-		_pcTable[pc] = _historyBuffer.size() - 1;
-		return;
+		MyHistory myHist(address, Addr_Pointer(lastIdx));
+		_historyBuffer.push_back(myHist);
+
+		idx = _historyBuffer.size() - 1;
+		_indexTable[address] = idx;
+		
 	}
 };
 
