@@ -60,22 +60,35 @@ public:
 			return;
 		}		 
 		
+		
+		long currLast = _historyBuffer.size() - 1;
 		long lastIdx = idx = _indexTable[address];
 		MyHistory& hist = _historyBuffer[idx];
 
-		idx = get<1>(hist);
-		int count = 0;
-
-		while (idx != LONG_MAX && count++ < 5)
+		while (idx < currLast)
 		{
-			MyHistory& hist = _historyBuffer[idx];
-	
-			for (int i = 1; idx + i < lastIdx && i < 4; ++i)
+			for (int j = 1; j <= 6; ++j)
 			{
-				prefetch.push_back(get<0>(_historyBuffer[idx+i]));
-			}
+				if (idx + j >= lastIdx)
+				{
+					break;
+				}
+				MyHistory& next = _historyBuffer[idx+j];
+		
+				Addr nextAddr = get<0>(next);
 			
+				if (nextAddr != address)
+				{
+					prefetch.push_back(get<0>(next));
+				}
+			}
+
 			idx = get<1>(hist);
+			
+			if (idx == LONG_MAX)
+				break;
+
+			hist = _historyBuffer[idx];
 		}
 
 		MyHistory myHist(address, Addr_Pointer(lastIdx));
