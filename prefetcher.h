@@ -1,10 +1,10 @@
 /*
- *
- * File: prefetcher.h
- * Author: Sat Garcia (sat@cs)
- * Description: Header file for prefetcher implementation
- *
- */
+*
+* File: prefetcher.h
+* Author: Sat Garcia (sat@cs)
+* Description: Header file for prefetcher implementation
+*
+*/
 
 #ifndef PREFETCHER_H
 #define PREFETCHER_H
@@ -29,7 +29,7 @@ private:
 	typedef u_int32_t Addr;
 	typedef long Addr_Pointer;
 	typedef long Stride;
-	enum State {Init, Steady, Transient, NoPred};
+	enum State { Init, Steady, Transient, NoPred };
 
 	typedef tuple<Addr, Addr_Pointer> MyHistory;
 
@@ -54,28 +54,28 @@ public:
 			_indexTable[address] = idx;
 
 			//for (int i = 1; i < 12; ++i)
-				//prefetch.push_back(address + 16*i);
-		
+			//prefetch.push_back(address + 16*i);
+
 			return;
-		}		 
-		
-		
+		}
+
+
 		long currLast = _historyBuffer.size() - 1;
 		long lastIdx = idx = _indexTable[address];
 		MyHistory& hist = _historyBuffer[idx];
 
 		while (idx < currLast)
 		{
-			for (int j = 1; j <=6; ++j)
+			for (int j = 1; j <= 6; ++j)
 			{
 				if (idx + j >= lastIdx)
 				{
 					break;
 				}
-				MyHistory& next = _historyBuffer[idx+j];
-		
+				MyHistory& next = _historyBuffer[idx + j];
+
 				Addr nextAddr = get<0>(next);
-			
+
 				if (nextAddr != address)
 				{
 					prefetch.push_back(get<0>(next));
@@ -83,7 +83,7 @@ public:
 			}
 
 			idx = get<1>(hist);
-			
+
 			if (idx == LONG_MAX)
 				break;
 
@@ -95,7 +95,57 @@ public:
 
 		idx = _historyBuffer.size() - 1;
 		_indexTable[address] = idx;
-		
+
+	}
+
+	void AddHit(Addr address, PC pc, vector<u_int32_t>& prefetch)
+	{
+		Index idx = 0;
+
+		if (_indexTable.find(address) == _indexTable.end())
+		{
+			MyHistory myHist(address, Addr_Pointer(LONG_MAX));
+			_historyBuffer.push_back(myHist);
+
+			idx = _historyBuffer.size() - 1;
+			_indexTable[address] = idx;
+
+			//for (int i = 1; i < 12; ++i)
+			//prefetch.push_back(address + 16*i);
+
+			return;
+		}
+
+
+		long currLast = _historyBuffer.size() - 1;
+		long lastIdx = idx = _indexTable[address];
+		MyHistory& hist = _historyBuffer[idx];
+
+		while (idx < currLast)
+		{
+			for (int j = 1; j <= 6; ++j)
+			{
+				if (idx + j >= lastIdx)
+				{
+					break;
+				}
+
+			}
+
+			idx = get<1>(hist);
+
+			if (idx == LONG_MAX)
+				break;
+
+			hist = _historyBuffer[idx];
+		}
+
+		MyHistory myHist(address, Addr_Pointer(lastIdx));
+		_historyBuffer.push_back(myHist);
+
+		idx = _historyBuffer.size() - 1;
+		_indexTable[address] = idx;
+
 	}
 };
 
@@ -110,7 +160,7 @@ public:
 
 
 class Prefetcher {
-  private:
+private:
 	HistoryBuffer _globalHistoryBuffer;
 	queue<tuple<u_int32_t, u_int32_t>> _fetchQueue;
 
@@ -120,7 +170,7 @@ class Prefetcher {
 	map<u_int32_t, long> _nameSets;
 	list<Request> _reqsQueue;
 
-  public:
+public:
 	Prefetcher();
 
 	// should return true if a request is ready for this cycle
@@ -133,10 +183,10 @@ class Prefetcher {
 	void completeRequest(u_int32_t cycle);
 
 	/*
-	 * This function is called whenever the CPU references memory.
-	 * Note that only the addr, pc, load, issuedAt, and HitL1 should be considered valid data
-	 */
-	void cpuRequest(Request req); 
+	* This function is called whenever the CPU references memory.
+	* Note that only the addr, pc, load, issuedAt, and HitL1 should be considered valid data
+	*/
+	void cpuRequest(Request req);
 };
 
 #endif

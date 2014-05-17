@@ -41,6 +41,13 @@ void Prefetcher::completeRequest(u_int32_t cycle) {
 
 void Prefetcher::cpuRequest(Request req) {
 	
+
+
+	if (req.HitL1){
+		vector<u_int32_t> fetchThis;
+		_globalHistoryBuffer.AddHit(req.addr, req.pc, fetchThis);
+	}
+
 	if (!req.HitL1) {
 		vector<u_int32_t> fetchThis;
 		_globalHistoryBuffer.AddMiss(req.addr, req.pc, fetchThis);
