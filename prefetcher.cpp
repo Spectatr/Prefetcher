@@ -11,66 +11,57 @@
 #include "prefetcher.h"
 #include <stdio.h>
 
-Prefetcher::Prefetcher() {}
+Prefetcher::Prefetcher() : last_address(0), last_diff(16) { }
 
-bool Prefetcher::hasRequest(u_int32_t cycle) {
+bool Prefetcher::hasRequest(u_int32_t cycle) 
+{
 	return !_fetchQueue.empty();
 }
 
-Request Prefetcher::getRequest(u_int32_t cycle) {
-
-	Request req = { 0 };
+Request Prefetcher::getRequest(u_int32_t cycle) 
+{
+	Request req = {0};
 
 	auto reqPair = _fetchQueue.front();
 
-	Request dummy = { 0 };
-	dummy.addr = get<0>(reqPair);
-	_reqsMap[dummy] = false;
+	req.addr = get<0>(reqPair);
+	_reqsMap[req] = false;
 
 	// Remove handling for this PC
-	req.addr = get<0>(reqPair);
-
 	_fetchQueue.pop();
 
 	return req;
 }
 
-void Prefetcher::completeRequest(u_int32_t cycle) {
+void Prefetcher::completeRequest(u_int32_t cycle) 
+{
 
 }
 
-void Prefetcher::cpuRequest(Request req) {
-	
-
-
-	if (req.HitL1){
-		vector<u_int32_t> fetchThis;
-		_globalHistoryBuffer.AddHit(req.addr, req.pc, fetchThis);
-	}
+void Prefetcher::cpuRequest(Request req) 
+{	
+	vector<u_int32_t> fetchThis;
+	_globalHistoryBuffer.AddMiss(req.addr, req.pc, fetchThis);
 
 	if (!req.HitL1) {
-		vector<u_int32_t> fetchThis;
-		_globalHistoryBuffer.AddMiss(req.addr, req.pc, fetchThis);
-
+		
 		for (auto it = fetchThis.begin(); it != fetchThis.end(); ++it)
 		{
 			_fetchQueue.push(make_pair(*it, req.addr));
 		
 		}
 		
-		static u_int32_t last_address = 0;
-		static long last_diff = 16;
-
 		if (last_address)
 		{
 			last_diff = req.addr - last_address;
 			if (abs(last_diff) > 16 * 2)
 				last_diff = 16 * (last_diff > 0 ? 1 : 1);
 		}
+
 		last_address = req.addr;
 
 
-		for (int i = 0; i < 12; ++i)
+		for (int i = 0; i < 13; ++i)
 		{
 			Request tmp_req;
 			tmp_req.addr = req.addr + last_diff * (i + 1);
@@ -82,9 +73,5 @@ void Prefetcher::cpuRequest(Request req) {
 			_reqsMap[tmp_req] = true;
 			
 		}
-
-		//cout << "Address " << req.addr << endl;
-		//system("pause");
-
 	}
 }

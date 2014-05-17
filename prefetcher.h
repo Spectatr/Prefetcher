@@ -97,56 +97,6 @@ public:
 		_indexTable[address] = idx;
 
 	}
-
-	void AddHit(Addr address, PC pc, vector<u_int32_t>& prefetch)
-	{
-		Index idx = 0;
-
-		if (_indexTable.find(address) == _indexTable.end())
-		{
-			MyHistory myHist(address, Addr_Pointer(LONG_MAX));
-			_historyBuffer.push_back(myHist);
-
-			idx = _historyBuffer.size() - 1;
-			_indexTable[address] = idx;
-
-			//for (int i = 1; i < 12; ++i)
-			//prefetch.push_back(address + 16*i);
-
-			return;
-		}
-
-
-		long currLast = _historyBuffer.size() - 1;
-		long lastIdx = idx = _indexTable[address];
-		MyHistory& hist = _historyBuffer[idx];
-
-		while (idx < currLast)
-		{
-			for (int j = 1; j <= 6; ++j)
-			{
-				if (idx + j >= lastIdx)
-				{
-					break;
-				}
-
-			}
-
-			idx = get<1>(hist);
-
-			if (idx == LONG_MAX)
-				break;
-
-			hist = _historyBuffer[idx];
-		}
-
-		MyHistory myHist(address, Addr_Pointer(lastIdx));
-		_historyBuffer.push_back(myHist);
-
-		idx = _historyBuffer.size() - 1;
-		_indexTable[address] = idx;
-
-	}
 };
 
 class my_less
@@ -165,10 +115,9 @@ private:
 	queue<tuple<u_int32_t, u_int32_t>> _fetchQueue;
 
 	map<Request, bool, my_less> _reqsMap;
-	map<u_int32_t, long> _offsMap;
-	map<u_int32_t, u_int32_t> _lastMap;
-	map<u_int32_t, long> _nameSets;
-	list<Request> _reqsQueue;
+
+	u_int32_t last_address;
+	long last_diff;
 
 public:
 	Prefetcher();
