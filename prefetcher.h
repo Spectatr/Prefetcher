@@ -17,10 +17,9 @@
 #include <queue>
 #include <tuple>
 #include <set>
+#include <list>
 
 using namespace std;
-
-
 
 class HistoryBuffer {
 private:
@@ -54,8 +53,8 @@ public:
 			idx = _historyBuffer.size() - 1;
 			_indexTable[address] = idx;
 
-			for (int i = 1; i < 12; ++i)
-				prefetch.push_back(address + 16*i);
+			//for (int i = 1; i < 12; ++i)
+				//prefetch.push_back(address + 16*i);
 		
 			return;
 		}		 
@@ -67,7 +66,7 @@ public:
 
 		while (idx < currLast)
 		{
-			for (int j = 1; j <= 6; ++j)
+			for (int j = 1; j <=6; ++j)
 			{
 				if (idx + j >= lastIdx)
 				{
@@ -100,11 +99,26 @@ public:
 	}
 };
 
+class my_less
+{
+public:
+	bool operator()(Request lhd, Request rhs)
+	{
+		return lhd.addr > rhs.addr;
+	}
+};
+
 
 class Prefetcher {
   private:
 	HistoryBuffer _globalHistoryBuffer;
 	queue<tuple<u_int32_t, u_int32_t>> _fetchQueue;
+
+	map<Request, bool, my_less> _reqsMap;
+	map<u_int32_t, long> _offsMap;
+	map<u_int32_t, u_int32_t> _lastMap;
+	map<u_int32_t, long> _nameSets;
+	list<Request> _reqsQueue;
 
   public:
 	Prefetcher();
