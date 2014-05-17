@@ -112,12 +112,15 @@ public:
 class Prefetcher {
 private:
 	HistoryBuffer _globalHistoryBuffer;
+	HistoryBuffer _globalHistoryBufferStore;
+	
 	queue<tuple<u_int32_t, u_int32_t>> _fetchQueue;
-
 	map<Request, bool, my_less> _reqsMap;
 
 	u_int32_t last_address;
+	u_int32_t last_address_store;
 	long last_diff;
+	long last_diff_store;
 
 public:
 	Prefetcher();
