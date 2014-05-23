@@ -18,8 +18,9 @@
 
 int main(/*int argc, char* argv[]*/) {
 	double sumavg = 0;
-	char* files[5] = {"g++.trace", "grep.trace", "ls.trace", "plamap.trace", "testgen.trace"};
-	for (int filei = 0; filei < 5; ++ filei)
+	//char* files[5] = {"g++.trace", "grep.trace", "ls.trace", "plamap.trace", "testgen.trace"};
+	char* files[1] = {"du.trace"};
+	for (int filei = 0; filei < 1; ++ filei)
 	{
 		char* argv = files[filei];
 

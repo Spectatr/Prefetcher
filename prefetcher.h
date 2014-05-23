@@ -15,11 +15,12 @@
 #include <map>
 #include <vector>
 #include <queue>
-#include <tuple>
 #include <set>
 #include <list>
+#include <climits>
 
 using namespace std;
+
 
 class HistoryBuffer {
 private:
@@ -31,37 +32,62 @@ private:
 	typedef long Stride;
 	enum State { Init, Steady, Transient, NoPred };
 
-	typedef tuple<Addr, Addr_Pointer> MyHistory;
+	typedef pair<Addr, Addr_Pointer> MyHistory;
+	typedef pair<PC, Index> MyIndex;
 
-	map<PC, Index> _indexTable;
-	map<Addr, Index> _pcTable;
-
+	list<MyIndex> _indexTable;
 	vector<MyHistory> _historyBuffer;
 
 public:
+	long _cIndex;
+	long _cBuff;
+
+public:
+	HistoryBuffer() : _cIndex(0), _cBuff(0) {}
+
+	template<class T1, class T2>
+	T2 doesExist(list<pair<T1, T2>>& myList, T1& obj)
+	{
+		for (list<pair<T1, T2>>::iterator it = myList.begin();
+			it != myList.end();
+			++it)
+		{
+			if (it->first == obj) return it->second;
+		}
+		return 0;
+	}
+
 	// http://www.cs.iit.edu/~chen/docs/chen_sc07-dahc.pdf
 	// adress = real address for global, pc for local (I think)
 	void AddMiss(Addr address, PC pc, vector<u_int32_t>& prefetch)
 	{
 		Index idx = 0;
 
-		if (_indexTable.find(address) == _indexTable.end())
+		if (doesExist<PC, Index>(_indexTable, address))
 		{
 			MyHistory myHist(address, Addr_Pointer(LONG_MAX));
 			_historyBuffer.push_back(myHist);
 
+			_cBuff = max(_cBuff, long(_historyBuffer.size()));
+
 			idx = _historyBuffer.size() - 1;
-			_indexTable[address] = idx;
+			_indexTable.push_back(MyIndex(address, idx));
+			if (_indexTable.size() > 64)
+			{
+				_indexTable.pop_front();
+			}
+
+			_cIndex = max(_cIndex, long(_indexTable.size()));
 
 			//for (int i = 1; i < 12; ++i)
-			//prefetch.push_back(address + 16*i);
+			//	prefetch.push_back(address + 16*i);
 
 			return;
 		}
 
 
 		long currLast = _historyBuffer.size() - 1;
-		long lastIdx = idx = _indexTable[address];
+		long lastIdx = idx = doesExist<PC, Index>(_indexTable, address);
 		MyHistory& hist = _historyBuffer[idx];
 
 		while (idx < currLast)
@@ -72,17 +98,17 @@ public:
 				{
 					break;
 				}
-				MyHistory& next = _historyBuffer[idx + j];
+				MyHistory next = _historyBuffer[idx + j];
 
-				Addr nextAddr = get<0>(next);
+				Addr nextAddr = next.first;
 
 				if (nextAddr != address)
 				{
-					prefetch.push_back(get<0>(next));
+					prefetch.push_back(next.first);
 				}
 			}
 
-			idx = get<1>(hist);
+			idx = hist.second;
 
 			if (idx == LONG_MAX)
 				break;
@@ -93,9 +119,17 @@ public:
 		MyHistory myHist(address, Addr_Pointer(lastIdx));
 		_historyBuffer.push_back(myHist);
 
-		idx = _historyBuffer.size() - 1;
-		_indexTable[address] = idx;
+		_cBuff = max(_cBuff, long(_historyBuffer.size()));
 
+		idx = _historyBuffer.size() - 1;
+		// over the limit because of h=ordere hehrherhe
+		_indexTable.push_back(MyIndex(address, idx));
+		if (_indexTable.size() > 64)
+		{
+			_indexTable.pop_front();
+		}
+
+		_cIndex = max(_cIndex, long(_indexTable.size()));
 	}
 };
 
@@ -114,8 +148,11 @@ private:
 	HistoryBuffer _globalHistoryBuffer;
 	HistoryBuffer _globalHistoryBufferStore;
 	
-	queue<tuple<u_int32_t, u_int32_t>> _fetchQueue;
-	map<Request, bool, my_less> _reqsMap;
+	queue<u_int32_t> _fetchQueue;
+	set<u_int32_t> _reqsMap;
+
+	long _cFetch;
+	long _cReqs;
 
 	u_int32_t last_address;
 	u_int32_t last_address_store;
@@ -124,6 +161,16 @@ private:
 
 public:
 	Prefetcher();
+
+	~Prefetcher()
+	{
+		cout << "_globalHistoryBuffer: " << _globalHistoryBuffer._cIndex * 8 / 1024.0 << ", "
+			<< _globalHistoryBuffer._cBuff * 8 / 1024.0 << endl;
+		cout << "_globalHistoryBufferStore: " << _globalHistoryBufferStore._cIndex * 8 / 1024.0 << ", "
+			<< _globalHistoryBufferStore._cBuff * 8 / 1024.0 << endl;
+		cout << "_cFetch: " << _cFetch * 4 / 1024.0 << endl;
+		cout << "_cReqs: " << _cReqs * 4 / 1024.0 << endl;
+	}
 
 	// should return true if a request is ready for this cycle
 	bool hasRequest(u_int32_t cycle);

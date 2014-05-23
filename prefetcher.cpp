@@ -10,8 +10,11 @@
 
 #include "prefetcher.h"
 #include <stdio.h>
+#include <cmath>
 
-Prefetcher::Prefetcher() : last_address(INT_MAX), last_diff(16), last_address_store(INT_MAX), last_diff_store(0) { }
+Prefetcher::Prefetcher() : last_address(INT_MIN), last_diff(16), last_address_store(INT_MIN), last_diff_store(16) { 
+	_cFetch = _cReqs = 0;
+}
 
 bool Prefetcher::hasRequest(u_int32_t cycle) 
 {
@@ -20,12 +23,13 @@ bool Prefetcher::hasRequest(u_int32_t cycle)
 
 Request Prefetcher::getRequest(u_int32_t cycle) 
 {
+	_cFetch = max(_cFetch, long(_fetchQueue.size()));
+	_cReqs = max(_cReqs, long(_reqsMap.size()));
+
 	Request req = {0};
 
-	auto reqPair = _fetchQueue.front();
-
-	req.addr = get<0>(reqPair);
-	_reqsMap[req] = false;
+	req.addr = _fetchQueue.front();
+	_reqsMap.erase(req.addr);
 
 	// Remove handling for this PC
 	_fetchQueue.pop();
@@ -47,9 +51,11 @@ void Prefetcher::cpuRequest(Request req)
 
 		if (!req.HitL1) 
 		{
-			for (auto it = fetchThis.begin(); it != fetchThis.end(); ++it)
+			for (vector<u_int32_t>::iterator it = fetchThis.begin(); 
+				it != fetchThis.end(); 
+				++it)
 			{
-				_fetchQueue.push(make_pair(*it, req.addr));
+				_fetchQueue.push(*it);
 			}
 			
 			if (last_address)
@@ -67,11 +73,11 @@ void Prefetcher::cpuRequest(Request req)
 				Request tmp_req;
 				tmp_req.addr = req.addr + last_diff * (i + 1);
 
-				if (_reqsMap[tmp_req])
+				if (_reqsMap.count(tmp_req.addr))
 					break;
 
-				_fetchQueue.push(make_pair(tmp_req.addr, tmp_req.addr));
-				_reqsMap[tmp_req] = true;
+				_fetchQueue.push(tmp_req.addr);
+				_reqsMap.insert(tmp_req.addr);
 			
 			}
 		}
@@ -81,9 +87,11 @@ void Prefetcher::cpuRequest(Request req)
 		_globalHistoryBufferStore.AddMiss(req.addr, req.pc, fetchThis);
 		if (!req.HitL1) 
 		{
-			for (auto it = fetchThis.begin(); it != fetchThis.end(); ++it)
+			for (vector<u_int32_t>::iterator it = fetchThis.begin(); 
+				it != fetchThis.end(); 
+				++it)
 			{
-				_fetchQueue.push(make_pair(*it, req.addr));
+				_fetchQueue.push(*it);
 			}
 	
 			
@@ -101,12 +109,11 @@ void Prefetcher::cpuRequest(Request req)
 				Request tmp_req;
 				tmp_req.addr = req.addr + last_diff_store * (i + 1);
 
-				if (_reqsMap[tmp_req])
+				if (_reqsMap.count(tmp_req.addr))
 					break;
 
-				_fetchQueue.push(make_pair(tmp_req.addr, tmp_req.addr));
-				_reqsMap[tmp_req] = true;
-			
+				_fetchQueue.push(tmp_req.addr);
+				_reqsMap.insert(tmp_req.addr);
 			}
 		}
 	}
