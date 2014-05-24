@@ -21,32 +21,45 @@
 
 using namespace std;
 
+#define BUFFER_SIZE 256
+#define INDEX_SIZE 16
 
 class HistoryBuffer {
 private:
 	typedef long Index;
 	typedef u_int32_t PC;
-	typedef long PC_Pointer;
+	//typedef long PC_Pointer;
 	typedef u_int32_t Addr;
-	typedef long Addr_Pointer;
-	typedef long Stride;
-	enum State { Init, Steady, Transient, NoPred };
+	//typedef long Addr_Pointer;
+	//typedef long Stride;
+	//enum State { Init, Steady, Transient, NoPred };
 
-	typedef pair<Addr, Addr_Pointer> MyHistory;
+	typedef pair<Addr, Index> MyHistory;
 	typedef pair<PC, Index> MyIndex;
 
-	list<MyIndex> _indexTable;
-	vector<MyHistory> _historyBuffer;
+	list<MyHistory> _indexTable;
+	MyHistory _historyBuffer[BUFFER_SIZE];
+
+	long _buffSize;
+	long _posBuffer;	// can be int
+	long _limBuffer;
+
 
 public:
 	long _cIndex;
 	long _cBuff;
 
 public:
-	HistoryBuffer() : _cIndex(0), _cBuff(0) {}
+	HistoryBuffer() : _cIndex(0), _cBuff(0), _posBuffer(-1), _limBuffer(0), _buffSize(0)
+	{
+		for (int i=0; i<BUFFER_SIZE; ++i)
+		{
+			_historyBuffer[i] = MyHistory(0, -1);
+		}
+	}
 
 	template<class T1, class T2>
-	T2 doesExist(list<pair<T1, T2>>& myList, T1& obj)
+	T2 exists(list<pair<T1, T2>>& myList, T1& obj)
 	{
 		for (list<pair<T1, T2>>::iterator it = myList.begin();
 			it != myList.end();
@@ -54,25 +67,38 @@ public:
 		{
 			if (it->first == obj) return it->second;
 		}
-		return 0;
+		return -1;
+	}
+
+	template<class T>
+	void addObject(T& obj)
+	{
+		//cout << _posBuffer << endl;
+		_posBuffer = ((_posBuffer + 1) % BUFFER_SIZE);
+		_historyBuffer[_posBuffer] = obj;
+
+		if (++_buffSize >= BUFFER_SIZE)
+		{
+			++_limBuffer;
+			--_buffSize;
+		}
+
+		//cout << "Adding " << obj.first << endl;
 	}
 
 	// http://www.cs.iit.edu/~chen/docs/chen_sc07-dahc.pdf
 	// adress = real address for global, pc for local (I think)
 	void AddMiss(Addr address, PC pc, vector<u_int32_t>& prefetch)
 	{
-		Index idx = 0;
-
-		if (doesExist<PC, Index>(_indexTable, address))
+		Index idx = -1; //exists<PC, Index>(_indexTable, address);
+		if ((idx = exists(_indexTable, address)) < _limBuffer
+			&& _historyBuffer[idx].first == address)
 		{
-			MyHistory myHist(address, Addr_Pointer(LONG_MAX));
-			_historyBuffer.push_back(myHist);
+			addObject(MyHistory(address, -1));
 
-			_cBuff = max(_cBuff, long(_historyBuffer.size()));
-
-			idx = _historyBuffer.size() - 1;
-			_indexTable.push_back(MyIndex(address, idx));
-			if (_indexTable.size() > 64)
+			//_indexTable.push_back(MyIndex(address, _posBuffer % BUFFER_SIZE));
+			_indexTable.push_back(MyHistory(address,  Index(_posBuffer % BUFFER_SIZE)));
+			if (_indexTable.size() > INDEX_SIZE)
 			{
 				_indexTable.pop_front();
 			}
@@ -85,46 +111,39 @@ public:
 			return;
 		}
 
-
-		long currLast = _historyBuffer.size() - 1;
-		long lastIdx = idx = doesExist<PC, Index>(_indexTable, address);
-		MyHistory& hist = _historyBuffer[idx];
-
-		while (idx < currLast)
+		MyHistory hist = _historyBuffer[idx];
+		Index firstIdx = idx;
+		 
+		while (idx >= _limBuffer)
 		{
 			for (int j = 1; j <= 6; ++j)
 			{
-				if (idx + j >= lastIdx)
+				MyHistory next = _historyBuffer[idx + j];
+				Addr nextAddr = next.first;
+
+				if (nextAddr == 0 || nextAddr == address)
 				{
 					break;
 				}
-				MyHistory next = _historyBuffer[idx + j];
 
-				Addr nextAddr = next.first;
-
-				if (nextAddr != address)
-				{
-					prefetch.push_back(next.first);
-				}
+				prefetch.push_back(next.first);
 			}
 
-			idx = hist.second;
+			Index nIdx = hist.second;
 
-			if (idx == LONG_MAX)
+			if (idx == nIdx || idx < _limBuffer)
 				break;
 
+			idx = nIdx;
 			hist = _historyBuffer[idx];
 		}
 
-		MyHistory myHist(address, Addr_Pointer(lastIdx));
-		_historyBuffer.push_back(myHist);
-
-		_cBuff = max(_cBuff, long(_historyBuffer.size()));
-
-		idx = _historyBuffer.size() - 1;
-		// over the limit because of h=ordere hehrherhe
-		_indexTable.push_back(MyIndex(address, idx));
-		if (_indexTable.size() > 64)
+		
+		addObject(MyHistory(address, firstIdx));
+		//_indexTable.push_back(MyIndex(address, _posBuffer % BUFFER_SIZE));
+		//_indexTable[address] = _posBuffer % BUFFER_SIZE;
+		_indexTable.push_back(MyHistory(address,  Index(_posBuffer % BUFFER_SIZE)));
+		if (_indexTable.size() > INDEX_SIZE)
 		{
 			_indexTable.pop_front();
 		}
@@ -165,9 +184,9 @@ public:
 	~Prefetcher()
 	{
 		cout << "_globalHistoryBuffer: " << _globalHistoryBuffer._cIndex * 8 / 1024.0 << ", "
-			<< _globalHistoryBuffer._cBuff * 8 / 1024.0 << endl;
+			<< BUFFER_SIZE * 8 / 1024.0 << endl;
 		cout << "_globalHistoryBufferStore: " << _globalHistoryBufferStore._cIndex * 8 / 1024.0 << ", "
-			<< _globalHistoryBufferStore._cBuff * 8 / 1024.0 << endl;
+			<< BUFFER_SIZE * 8 / 1024.0 << endl;
 		cout << "_cFetch: " << _cFetch * 4 / 1024.0 << endl;
 		cout << "_cReqs: " << _cReqs * 4 / 1024.0 << endl;
 	}
