@@ -35,5 +35,6 @@ void Prefetcher::cpuRequest(Request req)
 { 
 	if(!req.HitL1 && req.load) {
 		_globalHistory.AddMiss(req.addr, _reqQueue);
+		//cout << _reqQueue.size() << endl;
 	}
 }

@@ -14,6 +14,7 @@
 #include <iostream>
 #include <queue>
 #include <map>
+#include <set>
 using namespace std;
 
 class GlobalHistory
@@ -59,34 +60,49 @@ public:
 			HPair last = _historyTable[index];
 
 			// Limit width
-			int limitWidth = _historyTable.size() - 1;
-			int limitDepth = 10;
+			int limitation = _historyTable.size() - 1;		// Limits to previous node (init is end of list)
+			int limitDepth = 10;							// Depth limitation (how many backtracks)
+			int limitWidth = 1;								// Width limitation (how many lookaheads)
+			int next16 = 16;
+			set<Address> remeber;
 
 			while (itIndex >= 0 && (limitDepth--) > 0)
 			{
-				//while (index < limitWidth)
+				DiffAddr currDiff = 0;
+
+				while (index < limitation && limitWidth--)
 				{
 					// Width
 					HPair predicted = _historyTable[index + 1];
 			
 					// Current diff
-					DiffAddr currDiff = DiffAddr(predicted.first - last.first);
+					currDiff += DiffAddr(predicted.first - last.first);
 
 					// Insert to stack || NEED TO CHECK NO DUPLICATIONS
-					prefetch.push(address + currDiff);
-					cout << (address + currDiff) << endl;
-
+					Address predictedAddress = address + currDiff;
+					
+					if (remeber.count(predictedAddress) == 0)
+					{
+						prefetch.push(address + currDiff);
+						//cout << (address + currDiff) << endl;
+					}
+					
 					last = predicted;
 					++index;
 				}
-				break;
 
-				if (_indexTable.count(itIndex) == 0)
+				if (_indexTable.count(itIndex) > 0)
 				{
-					break;
+					limitation = itIndex;
+					itIndex -= _indexTable[itIndex];
+					index = itIndex;
 				}
-				itIndex -= _indexTable[itIndex];
-				index = itIndex;
+				else
+				{
+					limitDepth = 0;
+					prefetch.push(address + next16);
+					next16 += 16;
+				}
 			}
 		}
 
