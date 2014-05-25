@@ -21,8 +21,8 @@
 
 using namespace std;
 
-#define BUFFER_SIZE 256
-#define INDEX_SIZE 16
+#define BUFFER_SIZE 192
+#define INDEX_SIZE 32
 
 class HistoryBuffer {
 private:
@@ -59,9 +59,10 @@ public:
 	}
 
 	template<class T1, class T2>
-	T2 exists(list<pair<T1, T2>>& myList, T1& obj)
+	T2 exists(list<pair<T1, T2> >& myList, T1& obj)
 	{
-		for (list<pair<T1, T2>>::iterator it = myList.begin();
+		typename list<pair<T1, T2> >::iterator it;
+		for (it = myList.begin();
 			it != myList.end();
 			++it)
 		{
@@ -88,16 +89,17 @@ public:
 
 	// http://www.cs.iit.edu/~chen/docs/chen_sc07-dahc.pdf
 	// adress = real address for global, pc for local (I think)
-	void AddMiss(Addr address, PC pc, vector<u_int32_t>& prefetch)
+	void AddMiss(Addr diff, Addr addr, vector<u_int32_t>& prefetch)
 	{
 		Index idx = -1; //exists<PC, Index>(_indexTable, address);
-		if ((idx = exists(_indexTable, address)) < _limBuffer
-			&& _historyBuffer[idx].first == address)
+		if ((idx = exists(_indexTable, diff)) < _limBuffer
+			&& _historyBuffer[idx].first == diff)
 		{
-			addObject(MyHistory(address, -1));
+			MyHistory inst(addr, -1);
+			addObject(inst);
 
 			//_indexTable.push_back(MyIndex(address, _posBuffer % BUFFER_SIZE));
-			_indexTable.push_back(MyHistory(address,  Index(_posBuffer % BUFFER_SIZE)));
+			_indexTable.push_back(MyHistory(diff,  Index(_posBuffer % BUFFER_SIZE)));
 			if (_indexTable.size() > INDEX_SIZE)
 			{
 				_indexTable.pop_front();
@@ -121,7 +123,7 @@ public:
 				MyHistory next = _historyBuffer[idx + j];
 				Addr nextAddr = next.first;
 
-				if (nextAddr == 0 || nextAddr == address)
+				if (nextAddr == 0 || nextAddr == addr)
 				{
 					break;
 				}
@@ -138,11 +140,11 @@ public:
 			hist = _historyBuffer[idx];
 		}
 
-		
-		addObject(MyHistory(address, firstIdx));
+		MyHistory inst2(addr, firstIdx);
+		addObject(inst2);
 		//_indexTable.push_back(MyIndex(address, _posBuffer % BUFFER_SIZE));
 		//_indexTable[address] = _posBuffer % BUFFER_SIZE;
-		_indexTable.push_back(MyHistory(address,  Index(_posBuffer % BUFFER_SIZE)));
+		_indexTable.push_back(MyHistory(diff,  Index(_posBuffer % BUFFER_SIZE)));
 		if (_indexTable.size() > INDEX_SIZE)
 		{
 			_indexTable.pop_front();

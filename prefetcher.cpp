@@ -18,7 +18,31 @@ Prefetcher::Prefetcher() : last_address(INT_MIN), last_diff(16), last_address_st
 
 bool Prefetcher::hasRequest(u_int32_t cycle) 
 {
-	return !_fetchQueue.empty();
+	static u_int32_t last_cycle = cycle;
+	static int count = 0;
+
+	if (_fetchQueue.empty())
+	{
+		last_cycle = cycle;
+		count = 10;
+		return false;
+	}
+
+	// else
+	if (cycle - last_cycle >= 46)
+	{
+		count = 10;
+		last_cycle = cycle;
+		return true;
+	}
+
+	if (count > 0)
+	{
+		--count;
+		return true;
+	}
+
+	return false;
 }
 
 Request Prefetcher::getRequest(u_int32_t cycle) 
@@ -42,12 +66,37 @@ void Prefetcher::completeRequest(u_int32_t cycle)
 
 }
 
+/*
+double min(double a, double b)
+{
+	return a < b ? a : b;
+}
+
+double max(double a, double b)
+{
+	return a > b ? a : b;
+}
+
+long round(double a)
+{
+	if ((a - long(a)) > 0.5)
+	{
+		return (long(a) + 1);
+	}
+	return long(a);
+}
+*/
+
 void Prefetcher::cpuRequest(Request req) 
 {	
 	vector<u_int32_t> fetchThis;
 	if (req.load)
 	{
-		_globalHistoryBuffer.AddMiss(req.addr, req.pc, fetchThis);
+		static u_int32_t llast_address = 0;
+		if (llast_address != 0 && req.addr > llast_address)
+			_globalHistoryBuffer.AddMiss(req.addr - llast_address, req.addr, fetchThis);
+
+		llast_address = req.addr;
 
 		if (!req.HitL1) 
 		{
@@ -67,7 +116,6 @@ void Prefetcher::cpuRequest(Request req)
 
 			last_address = req.addr;
 
-
 			for (int i = 0; i < 10; ++i)
 			{
 				Request tmp_req;
@@ -84,7 +132,13 @@ void Prefetcher::cpuRequest(Request req)
 	}
 	else
 	{
-		_globalHistoryBufferStore.AddMiss(req.addr, req.pc, fetchThis);
+		static u_int32_t llast_address = 0;
+		if (llast_address != 0 && req.addr > llast_address)
+			_globalHistoryBufferStore.AddMiss(req.addr - llast_address, req.addr, fetchThis);
+
+		llast_address = req.addr;
+
+		//_globalHistoryBufferStore.AddMiss(req.addr, req.pc, fetchThis);
 		if (!req.HitL1) 
 		{
 			for (vector<u_int32_t>::iterator it = fetchThis.begin(); 
@@ -99,7 +153,10 @@ void Prefetcher::cpuRequest(Request req)
 			{
 				last_diff_store = req.addr - last_address_store;
 				if (abs(last_diff_store) > 16 * 2)
+				{
+				//	cout << "Diff is " << last_diff_store << endl;
 					last_diff_store = 16 * (last_diff_store > 0 ? 1 : -2);
+				}
 			}
 
 			last_address_store = req.addr;

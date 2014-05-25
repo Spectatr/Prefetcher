@@ -15,12 +15,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define NUM_FILES 12
 
 int main(/*int argc, char* argv[]*/) {
 	double sumavg = 0;
-	//char* files[5] = {"g++.trace", "grep.trace", "ls.trace", "plamap.trace", "testgen.trace"};
-	char* files[1] = {"du.trace"};
-	for (int filei = 0; filei < 1; ++ filei)
+	//char* files[NUM_FILES] = {"du.trace"};
+	//char* files[NUM_FILES] = {"idan.trace"};
+	char* files[NUM_FILES] = {"cjpeg.trace", "djpeg.trace", "du.trace", "g++.trace", "grep.trace", "idan.trace", \
+							  "ls.trace", "lsR.trace", "plamap.trace", "ps.trace", "pu.trace", "testgen.trace"};
+	//char* files[NUM_FILES] = {"pu.trace"};
+
+	for (int filei = 0; filei < NUM_FILES; ++ filei)
 	{
 		char* argv = files[filei];
 
@@ -237,7 +242,7 @@ int main(/*int argc, char* argv[]*/) {
 		printf("==========================\n\n");
 	}
 
-	sumavg /= 5;
+	sumavg /= NUM_FILES;
 	printf("\n\n\nTotal average: %lf\n", sumavg);
 	return 0;
 }
