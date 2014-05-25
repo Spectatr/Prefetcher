@@ -21,6 +21,7 @@ int main(/*int argc, char* argv[]*/) {
 	double sumavg = 0;
 	//char* files[NUM_FILES] = {"du.trace"};
 	//char* files[NUM_FILES] = {"idan.trace"};
+	//char* files[NUM_FILES] = {"cjpeg.trace"};
 	char* files[NUM_FILES] = {"g++.trace", "grep.trace", "ls.trace", "plamap.trace", "testgen.trace"};
 	//char* files[NUM_FILES] = {"cjpeg.trace", "djpeg.trace", "du.trace", "g++.trace", "grep.trace", "idan.trace", \
 							  "ls.trace", "lsR.trace", "plamap.trace", "ps.trace", "pu.trace", "testgen.trace"};
