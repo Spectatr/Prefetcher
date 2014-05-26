@@ -12,8 +12,7 @@
 #include <stdio.h>
 #include <cmath>
 
-Prefetcher::Prefetcher() : 
-	_last_address_load(0), _last_address_store(0), 
+Prefetcher::Prefetcher() :  
 	_address_load_diff(0), _address_store_diff(0)
 {
 	_cFetch = _cReqs = 0;
@@ -53,165 +52,108 @@ int sign(long num)
 
 void Prefetcher::cpuRequest(Request req) 
 {	
-	vector<u_int32_t> fetchThis;
-
 	if (req.load)
-	{
-		if (_last_address_load == 0)
+	{	
+		if (_address_load_diff == 0)
+			_address_load_diff = req.addr;
+
+		if (!req.HitL1 || !req.fromCPU)
 		{
-			_last_address_load = req.addr;
-			return;
+			_globalHistoryLoads.AddMiss(req.pc, req.addr, _fetchQueue, true);
+			int size = _fetchQueue.size();
+			for (int i=1; i<=16-size; ++i)
+				_fetchQueue.push(req.addr + i*16);
+
+			long last_diff = ((long(req.addr) - long(_address_load_diff)) * 16) / 16;
+
+			if (last_diff > 0 && last_diff < 1024)
+				_fetchQueue.push(req.addr + last_diff);
+
+			_address_load_diff = req.addr;
 		}
-
-		long currDiff = ((req.addr - _last_address_load) / 16) * 16;
-
-		if (!req.HitL1) 
-		{
-			_globalHistoryLoads.AddMiss(req.addr, req.pc, fetchThis, !req.HitL1);
-
-			for (vector<u_int32_t>::iterator it = fetchThis.begin(); 
-				it != fetchThis.end(); 
-				++it)
-			{
-				_fetchQueue.push(*it);
-			}
-			
-
-			if (false && currDiff && currDiff == _address_load_diff)
-			{
-				for (int i = 0; i < 10; ++i)
-				{
-					Request tmp_req;
-					tmp_req.addr = req.addr + currDiff * i;		// (maybe i+1???)
-
-					if (_reqsMap.count(tmp_req.addr))
-						continue;
-
-					_fetchQueue.push(tmp_req.addr);
-					_reqsMap.insert(tmp_req.addr);
-				}
-			}
-			
-			for (int i = 1; i <= 0; ++i)
-			{
-				Request tmp_req;
-				tmp_req.addr = req.addr + 16 * i;		// (maybe i+1???)
-
-				if (_reqsMap.count(tmp_req.addr))
-					continue;
-
-				_fetchQueue.push(tmp_req.addr);
-				_reqsMap.insert(tmp_req.addr);
-			}
-		}
-
-		_address_load_diff = currDiff;
-		_last_address_load = req.addr;
 	}
 	else
 	{
-		if (_last_address_store == 0)
+		if (_address_store_diff == 0)
+			_address_store_diff = req.addr;
+
+		if (!req.HitL1 || !req.fromCPU)
 		{
-			_last_address_store = req.addr;
-			return;
-		}
-
-		long currDiff = ((req.addr - _last_address_store) / 16) * 16;
-
-		if (!req.HitL1) 
-		{
-			_globalHistoryStores.AddMiss(req.addr, req.pc, fetchThis, !req.HitL1);
-
-			for (vector<u_int32_t>::iterator it = fetchThis.begin(); 
-				it != fetchThis.end(); 
-				++it)
-			{
-				_fetchQueue.push(*it);
-			}
-
-			if (!req.HitL1) 
-			{
-				for (vector<u_int32_t>::iterator it = fetchThis.begin(); 
-					it != fetchThis.end(); 
-					++it)
-				{
-					_fetchQueue.push(*it);
-				}
-			
-
-				if (false && currDiff == _address_store_diff)
-				{
-					for (int i = 0; i < 10; ++i)
-					{
-						Request tmp_req;
-						tmp_req.addr = req.addr + currDiff * i;		// (maybe i+1???)
-
-						if (_reqsMap.count(tmp_req.addr))
-							continue;
-
-						_fetchQueue.push(tmp_req.addr);
-						_reqsMap.insert(tmp_req.addr);
-					}
-				}
-
-				for (int i = 1; i <= 0; ++i)
-				{
-					Request tmp_req;
-					tmp_req.addr = req.addr + 16 * i * sign(currDiff);		// (maybe i+1???)
-
-					if (_reqsMap.count(tmp_req.addr))
-						continue;
-
-					_fetchQueue.push(tmp_req.addr);
-					_reqsMap.insert(tmp_req.addr);
-				}
-			}
-		}
+			_globalHistoryStores.AddMiss(req.pc, req.addr, _fetchQueue, true);
+			int size = _fetchQueue.size();
+			for (int i=0; i<=16-size; ++i)
+				_fetchQueue.push(req.addr + i*16);
 		
-		_address_store_diff = currDiff;
-		_last_address_store = req.addr;
+			long last_diff = ((long(req.addr) - long(_address_store_diff)) * 16) / 16;
+			if (last_diff > 0 && last_diff < 1024)
+				_fetchQueue.push(req.addr + last_diff);
+			
+			_address_store_diff = req.addr;
+		}
 	}
+
+	queue<u_int32_t> tmpQueue;
+	set<u_int32_t> tmpSet;
+
+	while (_fetchQueue.size())
+	{
+		u_int32_t curr = _fetchQueue.front();
+		_fetchQueue.pop();
+
+		if (tmpSet.count(curr) > 0)
+			continue;
+
+		tmpQueue.push(curr);
+	}
+	
+	while (tmpQueue.size())
+	{
+		_fetchQueue.push(tmpQueue.front());
+		tmpQueue.pop();
+	}
+
+	return;
 }
 
 
 
 int _main()
 {
-	vector<u_int32_t> fetchThis;
+	queue<u_int32_t> fetchThis;
 	GlobalHistory _globalHistoryStores;
 
 	// First iteration
-	_globalHistoryStores.AddMiss(0, 0, fetchThis, true);
+	_globalHistoryStores.AddMiss(100, 0, fetchThis, true);
 	_globalHistoryStores.printStacks();
 	//system("pause");
 
-	_globalHistoryStores.AddMiss(1, 1, fetchThis, true);
+	_globalHistoryStores.AddMiss(200, 1, fetchThis, true);
 	_globalHistoryStores.printStacks();
 	//system("pause");
 
-	_globalHistoryStores.AddMiss(2, 2, fetchThis, true);
+	_globalHistoryStores.AddMiss(250, 2, fetchThis, true);
 	_globalHistoryStores.printStacks();
 	//system("pause");
 
-	_globalHistoryStores.AddMiss(64, 64, fetchThis, true);
+	_globalHistoryStores.AddMiss(349, 64, fetchThis, true);
 	_globalHistoryStores.printStacks();
 	//system("pause");
 
 	// Second iteration
-	_globalHistoryStores.AddMiss(65, 65, fetchThis, true);
+	_globalHistoryStores.AddMiss(200, 65, fetchThis, true);
 	_globalHistoryStores.printStacks();
 	//system("pause");
 
-	_globalHistoryStores.AddMiss(66, 66, fetchThis, true);
+	_globalHistoryStores.AddMiss(250, 66, fetchThis, true);
 	_globalHistoryStores.printStacks();
 	//system("pause");
 
-	_globalHistoryStores.AddMiss(128, 128, fetchThis, true);
+	_globalHistoryStores.AddMiss(349, 128, fetchThis, true);
 	_globalHistoryStores.printStacks();
 	//system("pause");
 
-	fetchThis.clear();
-	_globalHistoryStores.AddMiss(129, 129, fetchThis, true);
+	while(fetchThis.size()) fetchThis.pop();
+	_globalHistoryStores.AddMiss(200, 129, fetchThis, true);
 	_globalHistoryStores.printStacks();
 	/*
 	// Third iteration
@@ -227,11 +169,10 @@ int _main()
 	_globalHistoryStores.printStacks();
 	system("pause");
 	*/
-	for (vector<u_int32_t>::iterator it = fetchThis.begin(); 
-		it != fetchThis.end(); 
-		++it)
+	while (fetchThis.size())
 	{
-		cout << "Predicted: " << *it << endl;
+		cout << "Predicted: " << fetchThis.front() << endl;
+		fetchThis.pop();
 	}
 
 

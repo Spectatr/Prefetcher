@@ -16,12 +16,13 @@
 #include <map>
 #include <set>
 #include <assert.h>
+#include <limits.h>
 using namespace std;
 
 class GlobalHistory
 {
 private:
-	typedef int DiffAddr;
+	typedef long long DiffAddr;
 	typedef int Index;
 	typedef u_int64_t Address;
 
@@ -33,28 +34,30 @@ private:
 	vector<HPair>								_historyTable;
 	map<pair<DiffAddr, DiffAddr>, Index>		_indexTable;
 
+	long										_sizeLimit;
+
 public:
-	GlobalHistory() : _PC1(ULONG_MAX), _PC2(ULONG_MAX) {}
+	GlobalHistory() : _PC1(ULONG_MAX), _PC2(ULONG_MAX), _sizeLimit(0) {}
 
 	void printStacks()
 	{
 		cout << " ======================== START ===========================\n";
 		int loc = 0;
-		for (auto i = _indexTable.begin(); i != _indexTable.end(); ++i)
+		//for (auto i = _indexTable.begin(); i != _indexTable.end(); ++i)
 		{
-			cout << "Diff " << loc++ << ": (" << i->first.first << ", " << i->first.second << ") to index: " << i->second << endl;
+			//cout << "Diff " << loc++ << ": (" << i->first.first << ", " << i->first.second << ") to index: " << i->second << endl;
 			//cout << "Addr: (" << i->first << ") to index: " << i->second << endl;
 		}
 		cout << " --------------- " << endl;
 		loc = 0;
-		for (int i=0; i<_historyTable.size(); ++i)
+		for (unsigned i=0; i<_historyTable.size(); ++i)
 		{
 			cout << "Address " << loc++ << ": " << _historyTable[i].first << " with index: " << _historyTable[i].second << endl;
 		}
 		cout << "\n\n\n";
 	}
 
-	void AddMiss(Address PC, Address address, vector<u_int32_t>& prefetch, bool saveFetches)
+	void AddMiss(Address PC, Address address, queue<u_int32_t>& prefetch, bool saveFetches)
 	{
 		// If first time, we cannot have a diff
 		if (_PC1 == ULONG_MAX)
@@ -70,8 +73,6 @@ public:
 			return;
 		}
 
-		//cout << "Address and last: " << address << " ; " << _lastAddress << endl;
-
 		// Compute current diff
 		DiffAddr diffPC1 = DiffAddr(PC) - DiffAddr(_PC1);
 		DiffAddr diffPC2 = DiffAddr(_PC1) - DiffAddr(_PC2);
@@ -82,14 +83,13 @@ public:
 		_PC1 = PC;
 
 		Index stepBack = INT_MAX;
-		DiffAddr diffIt = 100;
 
 		// If difference does exist in IndexTable
 		if (_indexTable.count(DiffPair) > 0/* && saveFetches*/)
 		{
 			// If does exist
-			int limitDepth = 10;							// Depth limitation (how many backtracks)
-			int limitWidth = 3;								// Width limitation (how many lookaheads)
+			int limitDepth = 1;							// Depth limitation (how many backtracks)
+			int limitWidth = 1;								// Width limitation (how many lookaheads)
 			int index = _indexTable[DiffPair];
 			int limitation = _historyTable.size();			// limitation of width search
 			stepBack = limitation - index;
@@ -98,25 +98,27 @@ public:
 			_historyTable.push_back(hPair);
 			_indexTable[DiffPair] = _historyTable.size() - 1;
 
-			long myDiff = 0;
+			DiffAddr diffIt = stepBack;
+
 			do
 			{
+				DiffAddr myDiff = 0;
+
 				HPair refPair = _historyTable[index];
-				for (int i=1; i<=limitWidth && index+i <= limitation; ++i)
+				for (int i=1; i<=limitWidth && index+i < limitation; ++i)
 				{
 					HPair hPair = _historyTable[index + i];
-					myDiff += (hPair.first - refPair.first);
-					prefetch.push_back(address + myDiff);
+					myDiff += (DiffAddr(hPair.first) - DiffAddr(refPair.first));
+
+					prefetch.push(Address(DiffAddr(address) + myDiff));
 					refPair = hPair;
-					//prefetch.push(hPair.first);
-					//cout << "Prefetch: " << hPair.first << endl;
 				}
 
 				limitation = index;
 				diffIt = _historyTable[index].second;
 				index -= diffIt;
 			} 
-			while(index >= 0 && diffIt > 1 && limitDepth-- > 0);
+			while(index >= 0 && diffIt >= 1 && limitDepth-- > 0);
 		}
 		else
 		{
@@ -124,19 +126,6 @@ public:
 			_historyTable.push_back(hPair);
 			_indexTable[DiffPair] = _historyTable.size() - 1;
 		}
-		//cout << "====================\n";
-
-		if (false && stepBack != INT_MAX)
-		{
-			printStacks();
-			cout << "PREDICTS:        ================\n";
-			cout << prefetch.back() << endl;
-			system("pause");
-		}
-		//cout << "Adding " << diffAddr << endl;
-		//cout << "====================\n";
-		//cout << "";
-		// Here add implementation for memory limitation
 		return;
 	}
 };
@@ -154,9 +143,6 @@ class Prefetcher {
 
 	long _cFetch;
 	long _cReqs;
-
-	u_int32_t _last_address_load;
-	u_int32_t _last_address_store;
 
 	long _address_load_diff;
 	long _address_store_diff;
