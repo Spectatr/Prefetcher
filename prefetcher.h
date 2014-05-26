@@ -26,20 +26,21 @@ using namespace std;
 class GlobalHistory
 {
 private:
+	typedef u_int64_t Address;
 	typedef int DiffAddr;
 	typedef int Index;
-	typedef u_int64_t Address;
 
-	typedef pair<pair<DiffAddr, DiffAddr>, Index>	IPair;
-	typedef pair<Address, DiffAddr>				HPair; 
-	typedef list<HPair>::iterator				HistoryIt;
+	typedef pair<
+		pair<DiffAddr, DiffAddr>, Index>	IPair;
+	typedef pair<Address, DiffAddr>			HPair; 
+	typedef list<HPair>::iterator			HistoryIt;
 	
-	Address										_PC1;	// Last
-	Address										_PC2;	// One before last
+	Address									_PC1;	// Last
+	Address									_PC2;	// One before last
 
-	list<HPair>									_historyTable;
-	list<IPair>									_indexTable;
-	Index										_sizeLimit;
+	list<HPair>								_historyTable;
+	list<IPair>								_indexTable;
+	Index									_sizeLimit;
 
 public:
 
@@ -199,7 +200,6 @@ class Prefetcher {
 
 	
 	queue<u_int32_t> _fetchQueue;
-	set<u_int32_t> _reqsMap;
 
 	long _cFetch;
 	long _cReqs;

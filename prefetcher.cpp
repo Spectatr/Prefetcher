@@ -26,12 +26,10 @@ bool Prefetcher::hasRequest(u_int32_t cycle)
 Request Prefetcher::getRequest(u_int32_t cycle) 
 {
 	_cFetch = max(_cFetch, long(_fetchQueue.size()));
-	_cReqs = max(_cReqs, long(_reqsMap.size()));
 
 	Request req = {0};
 
 	req.addr = _fetchQueue.front();
-	_reqsMap.erase(req.addr);
 
 	// Remove handling for this PC
 	_fetchQueue.pop();
@@ -95,7 +93,10 @@ void Prefetcher::cpuRequest(Request req)
 	queue<u_int32_t> tmpQueue;
 	set<u_int32_t> tmpSet;
 
-	while (_fetchQueue.size())
+	// Limit size of queue as well
+	int limit_queue = 11;
+
+	while (_fetchQueue.size() && limit_queue--)
 	{
 		u_int32_t curr = _fetchQueue.front();
 		_fetchQueue.pop();

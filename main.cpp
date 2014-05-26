@@ -22,7 +22,7 @@ int main(/*int argc, char* argv[]*/)
 	double bestavg = DBL_MAX;
 	for (int index1 = 4; index1 <= 4; ++index1)
 	{
-		for (int index2 = 1; index2 <= 4; ++index2)
+		for (int index2 = 1; index2 <= 1; ++index2)
 		{
 			GlobalHistory::index1 = index1;
 			GlobalHistory::index2 = index2;
