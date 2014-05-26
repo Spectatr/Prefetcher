@@ -30,22 +30,20 @@ private:
 	typedef int Index;
 	typedef u_int64_t Address;
 
-	typedef pair<Address, DiffAddr>				HPair; 
 	typedef pair<pair<DiffAddr, DiffAddr>, Index>	IPair;
+	typedef pair<Address, DiffAddr>				HPair; 
 	typedef list<HPair>::iterator				HistoryIt;
 	
 	Address										_PC1;	// Last
 	Address										_PC2;	// One before last
 
 	list<HPair>									_historyTable;
-	
 	list<IPair>									_indexTable;
-
-	long										_sizeLimit;
+	Index										_sizeLimit;
 
 public:
 
-	static int index1, index2;
+	static short index1, index2;
 
 private:
 
@@ -67,7 +65,7 @@ private:
 		return -1;
 	}
 
-	void ListAddLimited(IPair& toPush)
+	void ListAddLimited(IPair toPush)
 	{
 		_indexTable.push_back(toPush);
 
@@ -82,7 +80,7 @@ public:
 	{
 		cout << " ======================== START (index) ===========================\n";
 		int loc = 0;
-		for (auto i = _indexTable.begin(); i != _indexTable.end(); ++i)
+		for (list<IPair>::iterator i = _indexTable.begin(); i != _indexTable.end(); ++i)
 		{
 			cout << "Diff " << loc++ << ": (" << i->first.first << ", " << i->first.second << ") to index: " << i->second << endl;
 		}
@@ -127,8 +125,8 @@ public:
 		if ((index = ListFindAndRemove(DiffPair)) >= 0/* && saveFetches*/)
 		{
 			// If does exist
-			int limitDepth = index1;							// Depth limitation (how many backtracks)
-			int limitWidth = index2;								// Width limitation (how many lookaheads)
+			short limitDepth = index1;							// Depth limitation (how many backtracks)
+			short limitWidth = index2;								// Width limitation (how many lookaheads)
 
 			if (index < _sizeLimit)
 			{

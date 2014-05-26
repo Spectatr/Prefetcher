@@ -115,10 +115,10 @@ void Prefetcher::cpuRequest(Request req)
 	return;
 }
 
-int GlobalHistory::index1 = 0;
-int GlobalHistory::index2 = 0;
+short GlobalHistory::index1 = 4;
+short GlobalHistory::index2 = 1;
 
-int _main()
+int main()
 {
 	queue<u_int32_t> fetchThis;
 	GlobalHistory _globalHistoryStores;
