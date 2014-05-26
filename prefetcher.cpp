@@ -94,7 +94,7 @@ void Prefetcher::cpuRequest(Request req)
 	set<u_int32_t> tmpSet;
 
 	// Limit size of queue as well
-	int limit_queue = 11;
+	int limit_queue = 500;
 
 	while (_fetchQueue.size() && limit_queue--)
 	{

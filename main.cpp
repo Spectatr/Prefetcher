@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define NUM_FILES 1
+#define NUM_FILES 12
 
 int main(/*int argc, char* argv[]*/) 
 {
@@ -28,12 +28,12 @@ int main(/*int argc, char* argv[]*/)
 			GlobalHistory::index2 = index2;
 
 			double sumavg = 0;
-			char* files[NUM_FILES] = {"ammp.trace"};
+			//char* files[NUM_FILES] = {"ammp.trace"};
 			//char* files[NUM_FILES] = {"du.trace"};
 			//char* files[NUM_FILES] = {"idan.trace"};
 			//char* files[NUM_FILES] = {"cjpeg.trace"};
 			//char* files[NUM_FILES] = {"g++.trace", "grep.trace", "ls.trace", "plamap.trace", "testgen.trace"};
-			//char* files[NUM_FILES] = {"cjpeg.trace", "djpeg.trace", "du.trace", "g++.trace", "grep.trace", "idan.trace", \
+			char* files[NUM_FILES] = {"cjpeg.trace", "djpeg.trace", "du.trace", "g++.trace", "grep.trace", "idan.trace", \
 									  "ls.trace", "lsR.trace", "plamap.trace", "ps.trace", "pu.trace", "testgen.trace"};
 			//char* files[NUM_FILES] = {"pu.trace"};
 
