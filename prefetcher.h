@@ -15,44 +15,82 @@
 #include <queue>
 #include <map>
 #include <set>
+#include <list>
 #include <assert.h>
 #include <limits.h>
 using namespace std;
 
+#define BUFFER_SIZE 96
+#define INDEX_SIZE 32
+
 class GlobalHistory
 {
 private:
-	typedef long long DiffAddr;
+	typedef int DiffAddr;
 	typedef int Index;
 	typedef u_int64_t Address;
 
-	typedef pair<Address, Index> HPair; 
-		
+	typedef pair<Address, DiffAddr>				HPair; 
+	typedef pair<pair<DiffAddr, DiffAddr>, Index>	IPair;
+	typedef list<HPair>::iterator				HistoryIt;
+	
 	Address										_PC1;	// Last
 	Address										_PC2;	// One before last
 
-	vector<HPair>								_historyTable;
-	map<pair<DiffAddr, DiffAddr>, Index>		_indexTable;
+	list<HPair>									_historyTable;
+	
+	list<IPair>									_indexTable;
 
 	long										_sizeLimit;
 
 public:
+
+	static int index1, index2;
+
+private:
+
+	Index ListFindAndRemove(pair<DiffAddr, DiffAddr>& thePair)
+	{
+		list<IPair>::iterator myIter = _indexTable.begin();
+
+		for (; myIter != _indexTable.end(); ++myIter)
+		{
+			if (myIter->first == thePair)
+			{
+				Index idx = myIter->second;
+				_indexTable.erase(myIter);
+
+				return idx;
+			}
+		}
+
+		return -1;
+	}
+
+	void ListAddLimited(IPair& toPush)
+	{
+		_indexTable.push_back(toPush);
+
+		if (_indexTable.size() > INDEX_SIZE)
+			_indexTable.pop_front();
+	}
+
+public:
 	GlobalHistory() : _PC1(ULONG_MAX), _PC2(ULONG_MAX), _sizeLimit(0) {}
 
-	void printStacks()
+	void PrintStacks()
 	{
-		cout << " ======================== START ===========================\n";
+		cout << " ======================== START (index) ===========================\n";
 		int loc = 0;
-		//for (auto i = _indexTable.begin(); i != _indexTable.end(); ++i)
+		for (auto i = _indexTable.begin(); i != _indexTable.end(); ++i)
 		{
-			//cout << "Diff " << loc++ << ": (" << i->first.first << ", " << i->first.second << ") to index: " << i->second << endl;
-			//cout << "Addr: (" << i->first << ") to index: " << i->second << endl;
+			cout << "Diff " << loc++ << ": (" << i->first.first << ", " << i->first.second << ") to index: " << i->second << endl;
 		}
-		cout << " --------------- " << endl;
+		cout << " ---------(history) ------ " << endl;
 		loc = 0;
-		for (unsigned i=0; i<_historyTable.size(); ++i)
+		for (HistoryIt it = _historyTable.begin(); it != _historyTable.end(); ++it)
 		{
-			cout << "Address " << loc++ << ": " << _historyTable[i].first << " with index: " << _historyTable[i].second << endl;
+			cout << "Address " << loc++ << ": " << it->first << " with index: " << it->second << endl;
 		}
 		cout << "\n\n\n";
 	}
@@ -83,31 +121,49 @@ public:
 		_PC1 = PC;
 
 		Index stepBack = INT_MAX;
+		Index index;
 
 		// If difference does exist in IndexTable
-		if (_indexTable.count(DiffPair) > 0/* && saveFetches*/)
+		if ((index = ListFindAndRemove(DiffPair)) >= 0/* && saveFetches*/)
 		{
 			// If does exist
-			int limitDepth = 1;							// Depth limitation (how many backtracks)
-			int limitWidth = 1;								// Width limitation (how many lookaheads)
-			int index = _indexTable[DiffPair];
+			int limitDepth = index1;							// Depth limitation (how many backtracks)
+			int limitWidth = index2;								// Width limitation (how many lookaheads)
+
+			if (index < _sizeLimit)
+			{
+				goto HERE;
+			}
+
 			int limitation = _historyTable.size();			// limitation of width search
 			stepBack = limitation - index;
 
 			HPair hPair(address, stepBack);
 			_historyTable.push_back(hPair);
-			_indexTable[DiffPair] = _historyTable.size() - 1;
+			ListAddLimited(IPair(DiffPair,  _historyTable.size() - 1));
+
+			if (_historyTable.size() > BUFFER_SIZE)
+			{
+				_historyTable.pop_front();
+				++_sizeLimit;
+			}
 
 			DiffAddr diffIt = stepBack;
 
-			do
+			while(index >= 0 && diffIt >= 1 && limitDepth-- > 0)
 			{
 				DiffAddr myDiff = 0;
 
-				HPair refPair = _historyTable[index];
-				for (int i=1; i<=limitWidth && index+i < limitation; ++i)
+				HistoryIt historyHit = _historyTable.begin();
+				std::advance(historyHit, index - _sizeLimit);
+
+				HPair refPair = *historyHit; 
+				HPair orgPair = refPair;
+
+				for (int i=1; i<=limitWidth && index+i <= limitation; ++i)
 				{
-					HPair hPair = _historyTable[index + i];
+					std::advance(historyHit, 1);
+					HPair hPair = *historyHit;
 					myDiff += (DiffAddr(hPair.first) - DiffAddr(refPair.first));
 
 					prefetch.push(Address(DiffAddr(address) + myDiff));
@@ -115,16 +171,22 @@ public:
 				}
 
 				limitation = index;
-				diffIt = _historyTable[index].second;
+				diffIt = orgPair.second;
 				index -= diffIt;
 			} 
-			while(index >= 0 && diffIt >= 1 && limitDepth-- > 0);
+
+			return;
 		}
-		else
+		
+HERE:
+		HPair hPair(address, stepBack);
+		_historyTable.push_back(hPair);
+		ListAddLimited(IPair(DiffPair,  _historyTable.size() - 1));
+
+		if (_historyTable.size() > BUFFER_SIZE)
 		{
-			HPair hPair(address, stepBack);
-			_historyTable.push_back(hPair);
-			_indexTable[DiffPair] = _historyTable.size() - 1;
+			_historyTable.pop_front();
+			++_sizeLimit;
 		}
 		return;
 	}

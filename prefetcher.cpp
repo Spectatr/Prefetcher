@@ -61,7 +61,7 @@ void Prefetcher::cpuRequest(Request req)
 		{
 			_globalHistoryLoads.AddMiss(req.pc, req.addr, _fetchQueue, true);
 			int size = _fetchQueue.size();
-			for (int i=1; i<=16-size; ++i)
+			for (int i=1; i<=13-size; ++i)
 				_fetchQueue.push(req.addr + i*16);
 
 			long last_diff = ((long(req.addr) - long(_address_load_diff)) * 16) / 16;
@@ -81,7 +81,7 @@ void Prefetcher::cpuRequest(Request req)
 		{
 			_globalHistoryStores.AddMiss(req.pc, req.addr, _fetchQueue, true);
 			int size = _fetchQueue.size();
-			for (int i=0; i<=16-size; ++i)
+			for (int i=0; i<=13-size; ++i)
 				_fetchQueue.push(req.addr + i*16);
 		
 			long last_diff = ((long(req.addr) - long(_address_store_diff)) * 16) / 16;
@@ -115,7 +115,8 @@ void Prefetcher::cpuRequest(Request req)
 	return;
 }
 
-
+int GlobalHistory::index1 = 0;
+int GlobalHistory::index2 = 0;
 
 int _main()
 {
@@ -124,49 +125,49 @@ int _main()
 
 	// First iteration
 	_globalHistoryStores.AddMiss(100, 0, fetchThis, true);
-	_globalHistoryStores.printStacks();
+	_globalHistoryStores.PrintStacks();
 	//system("pause");
 
 	_globalHistoryStores.AddMiss(200, 1, fetchThis, true);
-	_globalHistoryStores.printStacks();
+	_globalHistoryStores.PrintStacks();
 	//system("pause");
 
 	_globalHistoryStores.AddMiss(250, 2, fetchThis, true);
-	_globalHistoryStores.printStacks();
+	_globalHistoryStores.PrintStacks();
 	//system("pause");
 
 	_globalHistoryStores.AddMiss(349, 64, fetchThis, true);
-	_globalHistoryStores.printStacks();
+	_globalHistoryStores.PrintStacks();
 	//system("pause");
 
 	// Second iteration
 	_globalHistoryStores.AddMiss(200, 65, fetchThis, true);
-	_globalHistoryStores.printStacks();
+	_globalHistoryStores.PrintStacks();
 	//system("pause");
 
 	_globalHistoryStores.AddMiss(250, 66, fetchThis, true);
-	_globalHistoryStores.printStacks();
+	_globalHistoryStores.PrintStacks();
 	//system("pause");
 
 	_globalHistoryStores.AddMiss(349, 128, fetchThis, true);
-	_globalHistoryStores.printStacks();
+	_globalHistoryStores.PrintStacks();
 	//system("pause");
 
 	while(fetchThis.size()) fetchThis.pop();
 	_globalHistoryStores.AddMiss(200, 129, fetchThis, true);
-	_globalHistoryStores.printStacks();
+	_globalHistoryStores.PrintStacks();
 	/*
 	// Third iteration
 	_globalHistoryStores.AddMiss(5, 129, fetchThis, false);
-	_globalHistoryStores.printStacks();
+	_globalHistoryStores.PrintStacks();
 	system("pause");
 
 	_globalHistoryStores.AddMiss(20, 130, fetchThis, false);
-	_globalHistoryStores.printStacks();
+	_globalHistoryStores.PrintStacks();
 	system("pause");
 
 	_globalHistoryStores.AddMiss(100, 192, fetchThis, true);
-	_globalHistoryStores.printStacks();
+	_globalHistoryStores.PrintStacks();
 	system("pause");
 	*/
 	while (fetchThis.size())
@@ -175,6 +176,7 @@ int _main()
 		fetchThis.pop();
 	}
 
+	_globalHistoryStores.PrintStacks();
 
 	return 0;
 }
