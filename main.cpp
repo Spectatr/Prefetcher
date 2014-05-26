@@ -17,12 +17,12 @@
 
 #define NUM_FILES 1
 
-int main_(/*int argc, char* argv[]*/) 
+int main(/*int argc, char* argv[]*/) 
 {
 	double bestavg = DBL_MAX;
-	for (int index1 = 0; index1 <= 4; ++index1)
+	for (int index1 = 4; index1 <= 4; ++index1)
 	{
-		for (int index2 = 0; index2 <= 4; ++index2)
+		for (int index2 = 1; index2 <= 4; ++index2)
 		{
 			GlobalHistory::index1 = index1;
 			GlobalHistory::index2 = index2;
@@ -240,7 +240,7 @@ int main_(/*int argc, char* argv[]*/)
 				fp = stdout; //fopen(outfile,"w"); // open outfile for writing
 
 				free(outfile);
-				/*
+				
 				fprintf(fp,"%-35s %10u\n", "Total Run Time", curr_cycle);
 				fprintf(fp,"%-35s %10.4f\n", "D - Cache Total Hit Rate",cpu.getHitRateL1());
 				fprintf(fp,"%-35s %10.4f\n","L2 Total Hit Rate",cpu.getHitRateL2());
@@ -248,10 +248,10 @@ int main_(/*int argc, char* argv[]*/)
 				fprintf(fp,"%-35s %10.4f\n","Average Memory Queue Length",avgMemQ);
 				fprintf(fp,"%-35s %10.4f\n","D-Cache-to-L2 bandwidth utilization",L2BW);
 				fprintf(fp,"%-35s %10.4f\n","Memory bandwidth utilization",memBW);
-				*/
+				
 				sumavg += cpu.getAMAT();
 				//fclose(fp);
-				//printf("==========================\n\n");
+				printf("==========================\n\n");
 			}
 
 			sumavg /= NUM_FILES;
