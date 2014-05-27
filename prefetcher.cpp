@@ -50,18 +50,25 @@ int sign(long num)
 
 void Prefetcher::cpuRequest(Request req) 
 {	
+	// In case of a load
 	if (req.load)
 	{	
+		// First time update diff of addresess
 		if (_address_load_diff == 0)
 			_address_load_diff = req.addr;
 
+		// If a miss / prefetch hit
 		if (!req.HitL1 || !req.fromCPU)
 		{
+			// Global history - teach and prefetch prediction
 			_globalHistoryLoads.AddMiss(req.pc, req.addr, _fetchQueue, true);
+
+			// Stride prefetcher
 			int size = _fetchQueue.size();
 			for (int i=1; i<=13-size; ++i)
 				_fetchQueue.push(req.addr + i*16);
 
+			// Delta prefetcher
 			long last_diff = ((long(req.addr) - long(_address_load_diff)) * 16) / 16;
 
 			if (last_diff > 0 && last_diff < 1024)
@@ -70,18 +77,24 @@ void Prefetcher::cpuRequest(Request req)
 			_address_load_diff = req.addr;
 		}
 	}
-	else
+	else // In case of a store
 	{
+		// First time update diff of addresess
 		if (_address_store_diff == 0)
 			_address_store_diff = req.addr;
 
+		// If a miss / prefetch hit
 		if (!req.HitL1 || !req.fromCPU)
 		{
+			// Global history - teach and prefetch prediction
 			_globalHistoryStores.AddMiss(req.pc, req.addr, _fetchQueue, true);
+			
+			// Stride prefetcher
 			int size = _fetchQueue.size();
 			for (int i=0; i<=13-size; ++i)
 				_fetchQueue.push(req.addr + i*16);
 		
+			// Delta prefetcher
 			long last_diff = ((long(req.addr) - long(_address_store_diff)) * 16) / 16;
 			if (last_diff > 0 && last_diff < 1024)
 				_fetchQueue.push(req.addr + last_diff);
@@ -90,19 +103,23 @@ void Prefetcher::cpuRequest(Request req)
 		}
 	}
 
+	// Limit size of queue
 	queue<u_int32_t> tmpQueue;
 	set<u_int32_t> tmpSet;
 
 	// Limit size of queue as well
-	int limit_queue = 500;
+	int limit_queue = 24;
 
+	// Make sure there are no duplications
 	while (_fetchQueue.size() && limit_queue--)
 	{
 		u_int32_t curr = _fetchQueue.front();
 		_fetchQueue.pop();
 
 		if (tmpSet.count(curr) > 0)
+		{
 			continue;
+		}
 
 		tmpQueue.push(curr);
 	}

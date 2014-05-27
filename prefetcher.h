@@ -26,28 +26,38 @@ using namespace std;
 class GlobalHistory
 {
 private:
-	typedef u_int64_t Address;
+	// Typedef types for clarity
+	typedef u_int64_t						Address;
 	typedef int DiffAddr;
 	typedef int Index;
 
+	// IPAir is a pair in Index Table
 	typedef pair<
 		pair<DiffAddr, DiffAddr>, Index>	IPair;
+
+	// HPair is a pair in Global History Buffer table
 	typedef pair<Address, DiffAddr>			HPair; 
 	typedef list<HPair>::iterator			HistoryIt;
 	
+	// Required to compute program counter offsets
 	Address									_PC1;	// Last
 	Address									_PC2;	// One before last
 
+	// All saved in an iteratable loops
 	list<HPair>								_historyTable;
 	list<IPair>								_indexTable;
+
+	// Lower bound for buffer
 	Index									_sizeLimit;
 
 public:
 
+	// Auxilary internal indexes for width and depth settings
 	static short index1, index2;
 
 private:
 
+	// Find pairs of PCs and remove them
 	Index ListFindAndRemove(pair<DiffAddr, DiffAddr>& thePair)
 	{
 		list<IPair>::iterator myIter = _indexTable.begin();
@@ -66,6 +76,7 @@ private:
 		return -1;
 	}
 
+	// Add new pairs of PCs mapped to an index in buffer
 	void ListAddLimited(IPair toPush)
 	{
 		_indexTable.push_back(toPush);
@@ -77,13 +88,15 @@ private:
 public:
 	GlobalHistory() : _PC1(ULONG_MAX), _PC2(ULONG_MAX), _sizeLimit(0) {}
 
+	// Auxilary print function
 	void PrintStacks()
 	{
 		cout << " ======================== START (index) ===========================\n";
 		int loc = 0;
 		for (list<IPair>::iterator i = _indexTable.begin(); i != _indexTable.end(); ++i)
 		{
-			cout << "Diff " << loc++ << ": (" << i->first.first << ", " << i->first.second << ") to index: " << i->second << endl;
+			cout << "Diff " << loc++ << ": (" << 
+				i->first.first << ", " << i->first.second << ") to index: " << i->second << endl;
 		}
 		cout << " ---------(history) ------ " << endl;
 		loc = 0;
@@ -126,8 +139,8 @@ public:
 		if ((index = ListFindAndRemove(DiffPair)) >= 0/* && saveFetches*/)
 		{
 			// If does exist
-			short limitDepth = index1;							// Depth limitation (how many backtracks)
-			short limitWidth = index2;								// Width limitation (how many lookaheads)
+			short limitDepth = index1;						// Depth limitation (how many backtracks)
+			short limitWidth = index2;						// Width limitation (how many lookaheads)
 
 			if (index < _sizeLimit)
 			{
@@ -194,7 +207,6 @@ HERE:
 
 class Prefetcher {
   private:
-	//queue<u_int32_t> _reqQueue;
 	GlobalHistory _globalHistoryLoads;
 	GlobalHistory _globalHistoryStores;
 
